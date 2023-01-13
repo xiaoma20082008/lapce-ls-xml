@@ -4,13 +4,18 @@
 #![deny(clippy::print_stdout)]
 #![deny(clippy::print_stderr)]
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use lapce_plugin::{
+    Http,
+    LapcePlugin, PLUGIN_RPC,
     psp_types::{
-        lsp_types::{request::Initialize, DocumentFilter, DocumentSelector, InitializeParams, Url, MessageType},
+        lsp_types::{DocumentFilter, DocumentSelector, InitializeParams, MessageType, request::Initialize, Url},
         Request,
     },
-    register_plugin, LapcePlugin, VoltEnvironment, PLUGIN_RPC,
+    register_plugin,
+    VoltEnvironment,
 };
 use serde_json::Value;
 
@@ -22,22 +27,30 @@ register_plugin!(State);
 fn initialize(params: InitializeParams) -> Result<()> {
     let document_selector: DocumentSelector = vec![DocumentFilter {
         // lsp language id
-        language: Some(String::from("language_id")),
+        language: Some(String::from("xml")),
         // glob pattern
-        pattern: Some(String::from("**/*.{ext1,ext2}")),
+        pattern: Some(String::from("**/*.xml")),
         // like file:
         scheme: None,
     }];
     let mut server_args = vec![];
+    let mut lemminx_version = "0.23.2";
+    let mut lemminx_port = 5008;
+    let mut lemminx_args = "";
 
     // Check for user specified LSP server path
     // ```
-    // [lapce-plugin-name.lsp]
+    // [lapce-lsp-xml]
     // serverPath = "[path or filename]"
     // serverArgs = ["--arg1", "--arg2"]
+    //
+    // [lapce-lsp-xml.lemminx]
+    // version = "0.23.2"
+    // port = 5008
+    // args = ""
     // ```
     if let Some(options) = params.initialization_options.as_ref() {
-        if let Some(lsp) = options.get("lsp") {
+        if let Some(lsp) = options.get("lapce-lsp-xml") {
             if let Some(args) = lsp.get("serverArgs") {
                 if let Some(args) = args.as_array() {
                     if !args.is_empty() {
@@ -65,45 +78,53 @@ fn initialize(params: InitializeParams) -> Result<()> {
                     }
                 }
             }
+
+            if let Some(lemminx) = lsp.get("lemminx") {
+                if let Some(version) = lemminx.get("version") {
+                    if let Some(version) = version.as_str() {
+                        if !version.is_empty() {
+                            lemminx_version = version.as_str();
+                        }
+                    }
+                }
+
+                if let Some(port) = lemminx.get("port") {
+                    if let Some(port) = port.as_i64() {
+                        lemminx_port = port;
+                    }
+                }
+
+                if let Some(args) = lemminx.get("args") {
+                    if let Some(args) = args.as_str() {
+                        if !args.is_empty() {
+                            lemminx_args = args;
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // Architecture check
-    let _ = match VoltEnvironment::architecture().as_deref() {
-        Ok("x86_64") => "x86_64",
-        Ok("aarch64") => "aarch64",
-        _ => return Ok(()),
-    };
-
-    // OS check
-    let _ = match VoltEnvironment::operating_system().as_deref() {
-        Ok("macos") => "macos",
-        Ok("linux") => "linux",
-        Ok("windows") => "windows",
-        _ => return Ok(()),
-    };
-
     // Download URL
-    // let _ = format!("https://github.com/<name>/<project>/releases/download/<version>/{filename}");
+    let lemminx_uber = "org.eclipse.lemminx-uber.jar";
+    let lemminx_download_url = format!("https://download.eclipse.org/lemminx/releases/{lemminx_version}/{lemminx_uber}");
 
     // see lapce_plugin::Http for available API to download files
+    if !PathBuf::from(lemminx_uber).exists() {
+        let mut resp = Http::get(&lemminx_download_url)?;
+        let body = resp.body_read_all()?;
+        std::fs::write(&lombok_jar, body)?;
+    }
 
-    let _ = match VoltEnvironment::operating_system().as_deref() {
-        Ok("windows") => {
-            format!("{}.exe", "[filename]")
-        }
-        _ => "[filename]".to_string(),
-    };
-
+    let mut args = server_args.join(" ");
+    if args.is_empty() {
+        lemminx_args = "-Xmx32M -Xms32M";
+    }
     // Plugin working directory
     let volt_uri = VoltEnvironment::uri()?;
-    let server_uri = Url::parse(&volt_uri)?.join("[filename]")?;
+    let base_path = Url::parse(&volt_uri)?;
+    let server_uri = base_path.join(&format!("java -server {args} -jar {lemminx_uber}"))?;
 
-    // if you want to use server from PATH
-    // let server_uri = Url::parse(&format!("urn:{filename}"))?;
-
-    // Available language IDs
-    // https://github.com/lapce/lapce/blob/HEAD/lapce-proxy/src/buffer.rs#L173
     PLUGIN_RPC.start_lsp(
         server_uri,
         server_args,
@@ -111,7 +132,7 @@ fn initialize(params: InitializeParams) -> Result<()> {
         params.initialization_options,
     );
 
-    Ok(())
+    return Ok(());
 }
 
 impl LapcePlugin for State {

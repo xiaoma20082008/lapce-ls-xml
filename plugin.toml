@@ -1,0 +1,10 @@
+name = "lapce-lsp-xml"
+display-name = "XML"
+description = "XML for Lapce: powered by lemminx"
+version = "0.0.1"
+author = "xiaoma20082008"
+repository = "xiaoma20082008/lapce-lsp-xml"
+wasm = "lapce-lsp-xml.wasm"
+
+[configuration]
+language_id = "xml"

@@ -1,30 +1,34 @@
-name = "<plugin-name>"
-version = "0.0.0"
-author = "<your name>"
-display-name = "<plugin-display-name>"
-description = "<plugin-description>"
-wasm = "bin/<plugin-name>.wasm"
+name = "lapce-lsp-xml"
+version = "0.0.1"
+author = "xiaoma20082008"
+display-name = "xml"
+description = "Xml for Lapce: powered by Lemminx"
+wasm = "bin/lapce-lsp-xml.wasm"
+repository = "https://github.com/xiaoma20082008/lapce-lsp-xml.git"
 
 [activation]
-language = []
-workspace-contains = []
+language = ["xml"]
+workspace-contains = [
+    "*/*.xml"
+]
 
-[config."lsp.serverPath"]
+[config."lapce-lsp-xml.serverPath"]
 default = ""
-description = "Path to custom LSP executable"
+description = "Path to XML LSP executable"
 
-# [config."lsp.serverArgs"]
-# default = []
-# description = ""
+[config."lapce-lsp-xml.serverArgs"]
+default = []
+description = "XML LSP's arguments"
 
-# [config."lspSettingArray"]
-# default = []
-# description = ""
+[config."lapce-lsp-xml.lemminx.version"]
+default = ""
+description = "lemminx-uber's version"
 
-# [config."lspSettingString"]
-# default = ""
-# description = ""
+[config."lapce-lsp-xml.lemminx.port"]
+default = 5008
+description = "lemminx-uber's connection port"
 
-# [config."lspSettingBool"]
-# default = false
-# description = ""
+[config."lapce-lsp-xml.lemminx.args"]
+default = ""
+description = "lemminx-uber's JVM arguments. Like -Xms=32M -Xmx=32M"
+

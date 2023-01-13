@@ -69,6 +69,7 @@ $RECYCLE.BIN/
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff
+.idea
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -575,3 +576,6 @@ Cargo.lock
 
 # it's not good to accept binary files updates in PRs
 /bin
+
+.lapce
+.fleet
